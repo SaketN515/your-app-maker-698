@@ -13,12 +13,23 @@ export const createBooking = createServerFn({ method: "POST" })
       bookingDate: string;
       startTime: string;
       endTime: string;
+      partySize: number;
     }) => input,
   )
   .handler(async ({ data, context }) => {
     const expiresAt = new Date(
       `${data.bookingDate}T${data.endTime}:00`,
     ).toISOString();
+
+    const partySize = Math.max(1, Math.min(100, Math.floor(data.partySize)));
+
+    const { data: venue, error: venueError } = await context.supabase
+      .from("venues")
+      .select("price_per_hour")
+      .eq("id", data.venueId)
+      .single();
+    if (venueError) throw venueError;
+    const totalPrice = (venue?.price_per_hour ?? 0) * partySize;
 
     let code = generateBookingCode();
     let attempts = 0;
@@ -36,6 +47,8 @@ export const createBooking = createServerFn({ method: "POST" })
           end_time: data.endTime,
           code,
           expires_at: expiresAt,
+          party_size: partySize,
+          total_price: totalPrice,
         })
         .select("*")
         .single();
