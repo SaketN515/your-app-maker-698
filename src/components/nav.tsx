@@ -22,7 +22,7 @@ export function Nav() {
 
   const email = user?.email;
   const initials = email
-    ? email.split("@")[0].slice(0, 2).toUpperCase()
+    ? (email.split("@")[0] ?? "").slice(0, 2).toUpperCase()
     : "??";
 
   const navLinkClass = (path: string) =>
