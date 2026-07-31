@@ -20,11 +20,9 @@ export function Nav() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const initials = user?.email
-    ? user.email
-        .split("@")[0]
-        .slice(0, 2)
-        .toUpperCase()
+  const email = user?.email;
+  const initials = email
+    ? email.split("@")[0].slice(0, 2).toUpperCase()
     : "??";
 
   const navLinkClass = (path: string) =>

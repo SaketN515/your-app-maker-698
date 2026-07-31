@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateBookingCode } from "./venue-images";
 
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+
 export const createBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -19,10 +21,10 @@ export const createBooking = createServerFn({ method: "POST" })
 
     let code = generateBookingCode();
     let attempts = 0;
-    let inserted: Record<string, unknown> | null = null;
+    let result: BookingRow | null = null;
     let lastError: unknown = null;
 
-    while (attempts < 5 && !inserted) {
+    while (attempts < 5 && !result) {
       const { data: booking, error } = await context.supabase
         .from("bookings")
         .insert({
@@ -49,13 +51,13 @@ export const createBooking = createServerFn({ method: "POST" })
         }
         throw error;
       }
-      inserted = booking;
+      if (booking) result = booking;
     }
 
-    if (!inserted) {
+    if (!result) {
       throw lastError ?? new Error("Failed to create booking");
     }
-    return inserted;
+    return result;
   });
 
 export const getMyBookings = createServerFn({ method: "GET" })

@@ -9,7 +9,7 @@ export const venueImages: Record<string, string> = {
 };
 
 export function getVenueImage(imagePath: string): string {
-  return venueImages[imagePath] ?? venueImages.turf;
+  return venueImages[imagePath] ?? venueImages["turf"] ?? turfImg;
 }
 
 export type VenueType = "turf" | "gaming_cafe" | "console_lounge";
@@ -59,7 +59,7 @@ export function getNext7Days(): { date: string; label: string; sub: string }[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = d.toISOString().slice(0, 10);
     const label = d.toLocaleDateString("en-US", { weekday: "short" });
     const sub = d.toLocaleDateString("en-US", {
       month: "short",
