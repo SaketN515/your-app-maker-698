@@ -29,7 +29,7 @@ export const Route = createFileRoute("/venue/$id")({
 function VenueDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [selectedDay, setSelectedDay] = useState(getNext7Days()[0].date);
+  const [selectedDay, setSelectedDay] = useState(getNext7Days()[0]?.date ?? "");
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const createBookingFn = useServerFn(createBooking);
 
