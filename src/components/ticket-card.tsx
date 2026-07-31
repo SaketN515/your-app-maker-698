@@ -80,6 +80,22 @@ export function TicketCard({ booking }: { booking: Booking }) {
                 {isActive ? getExpiresIn(booking.expires_at) : status.label}
               </span>
             </div>
+            <div className="p-3 bg-void/50 rounded-xl border border-white/5">
+              <span className="block text-[10px] text-white/30 uppercase mb-1">
+                People
+              </span>
+              <span className="text-lg font-mono text-white tracking-tighter">
+                {booking.party_size}
+              </span>
+            </div>
+            <div className="p-3 bg-void/50 rounded-xl border border-white/5">
+              <span className="block text-[10px] text-white/30 uppercase mb-1">
+                Total
+              </span>
+              <span className="text-lg font-mono text-electric tracking-tighter">
+                ${booking.total_price}
+              </span>
+            </div>
           </div>
         </div>
 

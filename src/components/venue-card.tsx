@@ -38,7 +38,7 @@ export function VenueCard({ venue }: { venue: Venue }) {
         </div>
         <div className="text-right shrink-0">
           <span className={`block font-bold ${typeBadge[venue.type]}`}>
-            ${venue.price_per_hour}/hr
+            ${venue.price_per_hour}/hr per person
           </span>
           <span className="text-[10px] text-white/40 uppercase">
             {venue.capacity} slots

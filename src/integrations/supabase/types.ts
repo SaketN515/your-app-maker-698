@@ -22,8 +22,10 @@ export type Database = {
           end_time: string
           expires_at: string
           id: string
+          party_size: number
           start_time: string
           status: Database["public"]["Enums"]["booking_status"]
+          total_price: number
           user_id: string
           venue_id: string
         }
@@ -34,8 +36,10 @@ export type Database = {
           end_time: string
           expires_at: string
           id?: string
+          party_size?: number
           start_time: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_price?: number
           user_id: string
           venue_id: string
         }
@@ -46,8 +50,10 @@ export type Database = {
           end_time?: string
           expires_at?: string
           id?: string
+          party_size?: number
           start_time?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          total_price?: number
           user_id?: string
           venue_id?: string
         }

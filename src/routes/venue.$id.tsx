@@ -31,6 +31,7 @@ function VenueDetail() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState(getNext7Days()[0]?.date ?? "");
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [partySize, setPartySize] = useState(1);
   const createBookingFn = useServerFn(createBooking);
 
   const { data: venue, isPending } = useQuery({
@@ -56,6 +57,7 @@ function VenueDetail() {
           bookingDate: selectedDay,
           startTime: slot.start,
           endTime: slot.end,
+          partySize,
         },
       });
     },
@@ -116,7 +118,9 @@ function VenueDetail() {
           <span className="text-3xl font-bold text-electric">
             ${venue.price_per_hour}
           </span>
-          <span className="text-white/30 text-sm block">per hour</span>
+          <span className="text-white/30 text-sm block">
+            per person / hour
+          </span>
         </div>
       </div>
 
@@ -165,6 +169,39 @@ function VenueDetail() {
           ))}
         </div>
 
+        {/* Party size picker */}
+        <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
+          How many people
+        </p>
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            type="button"
+            aria-label="Decrease people"
+            onClick={() => setPartySize((n) => Math.max(1, n - 1))}
+            disabled={partySize <= 1}
+            className="size-11 rounded-full border border-white/10 bg-void/50 text-white text-xl font-bold hover:border-white/30 disabled:opacity-30"
+          >
+            −
+          </button>
+          <span className="text-2xl font-mono font-bold text-white w-10 text-center">
+            {partySize}
+          </span>
+          <button
+            type="button"
+            aria-label="Increase people"
+            onClick={() =>
+              setPartySize((n) => Math.min(venue.capacity ?? 20, n + 1))
+            }
+            disabled={partySize >= (venue.capacity ?? 20)}
+            className="size-11 rounded-full border border-white/10 bg-void/50 text-white text-xl font-bold hover:border-white/30 disabled:opacity-30"
+          >
+            +
+          </button>
+          <span className="text-xs text-white/30">
+            Max {venue.capacity ?? 20}
+          </span>
+        </div>
+
         {/* Summary + book button */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-white/10">
           <div>
@@ -173,7 +210,11 @@ function VenueDetail() {
               {selectedSlot ? selectedSlot : "--:--"}
             </p>
             <p className="text-2xl font-bold text-electric mt-1">
-              ${venue.price_per_hour}
+              ${venue.price_per_hour * partySize}
+            </p>
+            <p className="text-white/30 text-xs">
+              ${venue.price_per_hour} × {partySize}{" "}
+              {partySize === 1 ? "person" : "people"}
             </p>
           </div>
           {isLoggedIn ? (
