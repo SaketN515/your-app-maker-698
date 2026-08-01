@@ -1,23 +1,20 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccountRole } from "@/hooks/use-role";
 
 export function Nav() {
-  const [user, setUser] = useState<null | { email?: string }>(null);
-  const [loading, setLoading] = useState(true);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const queryClient = useQueryClient();
+  const { user, isOwner, isPending } = useAccountRole();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries({ queryKey: ["my-roles"] });
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const email = user?.email;
   const initials = email
@@ -26,41 +23,49 @@ export function Nav() {
 
   const navLinkClass = (path: string) =>
     `text-sm font-medium uppercase tracking-widest transition-colors ${
-      pathname === path
-        ? "text-electric"
-        : "text-white/60 hover:text-white"
+      pathname === path ? "text-electric" : "text-white/60 hover:text-white"
     }`;
 
   return (
-    <nav className="border-b border-white/10 px-6 py-4 flex justify-between items-center">
-      <Link to="/" className="text-2xl font-bold tracking-tighter text-electric no-underline">
+    <nav className="border-b border-white/10 px-6 py-4 flex justify-between items-center gap-4">
+      <Link
+        to="/"
+        className="text-2xl font-bold tracking-tighter text-electric no-underline"
+      >
         VELOCITY
       </Link>
-      <div className="flex gap-8 items-center">
-        <Link to="/" className={navLinkClass("/")} >
+      <div className="flex gap-6 items-center">
+        <Link to="/" className={navLinkClass("/")}>
           Venues
         </Link>
-        {user && (
+        {user && !isOwner && (
+          <Link to="/bookings" className={navLinkClass("/bookings")}>
+            My Tickets
+          </Link>
+        )}
+        {user && isOwner && (
           <>
-            <Link to="/bookings" className={navLinkClass("/bookings")}>
-              My Bookings
+            <Link to="/owner/venues" className={navLinkClass("/owner/venues")}>
+              My Venues
             </Link>
             <Link to="/owner" className={navLinkClass("/owner")}>
-              Owner Verify
+              Verify Tickets
             </Link>
           </>
         )}
       </div>
       <div className="flex items-center gap-3">
-        {loading ? (
+        {isPending ? (
           <div className="size-10 rounded-full bg-white/10 animate-pulse" />
         ) : user ? (
           <button
             onClick={async () => {
+              await queryClient.cancelQueries();
+              queryClient.clear();
               await supabase.auth.signOut();
             }}
             className="size-10 rounded-full bg-pulse/20 border border-pulse/40 flex items-center justify-center text-pulse text-xs font-bold hover:bg-pulse/30 transition-colors"
-            title={user.email}
+            title={`${email ?? ""}${isOwner ? " (owner)" : ""}`}
           >
             {initials}
           </button>
