@@ -3,14 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getVenue, listVenues } from "@/lib/venues.functions";
+import { getVenue, listVenueSlots } from "@/lib/venues.functions";
 import { createBooking } from "@/lib/bookings.functions";
-import {
-  getVenueImage,
-  getNext7Days,
-  timeSlots,
-  formatBookingDate,
-} from "@/lib/venue-images";
+import { resolveVenueImage, formatBookingDate } from "@/lib/venue-images";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/venue/$id")({
@@ -29,7 +24,7 @@ export const Route = createFileRoute("/venue/$id")({
 function VenueDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [selectedDay, setSelectedDay] = useState(getNext7Days()[0]?.date ?? "");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [partySize, setPartySize] = useState(1);
   const createBookingFn = useServerFn(createBooking);
@@ -44,19 +39,26 @@ function VenueDetail() {
     queryFn: () => supabase.auth.getUser(),
   });
 
-  const days = getNext7Days();
+  const { data: slots } = useQuery({
+    queryKey: ["venue-slots", id],
+    queryFn: () => listVenueSlots({ data: { venueId: id } }),
+  });
+
+  const slotDates = Array.from(new Set((slots ?? []).map((s) => s.slot_date)));
+  const activeDay = selectedDay ?? slotDates[0] ?? "";
+  const daySlots = (slots ?? []).filter((s) => s.slot_date === activeDay);
+  const chosen = daySlots.find((s) => s.start_time === selectedSlot) ?? null;
+  const unitPrice = chosen?.price_per_person ?? venue?.price_per_hour ?? 0;
 
   const bookingMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedSlot) throw new Error("Select a time slot");
-      const slot = timeSlots.find((s) => s.start === selectedSlot);
-      if (!slot) throw new Error("Invalid slot");
+      if (!chosen) throw new Error("Select a time slot");
       return createBookingFn({
         data: {
           venueId: id,
-          bookingDate: selectedDay,
-          startTime: slot.start,
-          endTime: slot.end,
+          bookingDate: chosen.slot_date,
+          startTime: chosen.start_time.slice(0, 5),
+          endTime: chosen.end_time.slice(0, 5),
           partySize,
         },
       });
@@ -82,7 +84,7 @@ function VenueDetail() {
     );
   }
 
-  const img = getVenueImage(venue.image_path);
+  const img = resolveVenueImage(venue.image_path, venue.image_url);
   const isLoggedIn = !!user?.data?.user;
 
   return (
@@ -116,7 +118,7 @@ function VenueDetail() {
         </div>
         <div className="text-right shrink-0">
           <span className="text-3xl font-bold text-electric">
-            ${venue.price_per_hour}
+            ${venue.price_per_hour}+
           </span>
           <span className="text-white/30 text-sm block">
             per person / hour
@@ -128,46 +130,73 @@ function VenueDetail() {
       <div className="bg-surface rounded-3xl p-6 border border-white/10">
         <h2 className="text-xl font-bold text-white mb-6">Pick your slot</h2>
 
-        {/* Day picker */}
-        <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
-          Select Date
-        </p>
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {days.map((day) => (
-            <button
-              key={day.date}
-              onClick={() => setSelectedDay(day.date)}
-              className={`shrink-0 px-4 py-3 rounded-xl text-center transition-colors min-w-[80px] ${
-                selectedDay === day.date
-                  ? "bg-electric text-void"
-                  : "bg-void/50 text-white/50 border border-white/10 hover:text-white"
-              }`}
-            >
-              <span className="block text-sm font-bold">{day.label}</span>
-              <span className="block text-xs opacity-70">{day.sub}</span>
-            </button>
-          ))}
-        </div>
+        {slotDates.length === 0 ? (
+          <p className="text-white/40 text-sm mb-2">
+            The owner hasn't opened any slots yet. Check back soon.
+          </p>
+        ) : (
+          <>
+            {/* Day picker */}
+            <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
+              Select Date
+            </p>
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+              {slotDates.map((date) => {
+                const d = new Date(date + "T00:00:00");
+                return (
+                  <button
+                    key={date}
+                    onClick={() => {
+                      setSelectedDay(date);
+                      setSelectedSlot(null);
+                    }}
+                    className={`shrink-0 px-4 py-3 rounded-xl text-center transition-colors min-w-[80px] ${
+                      activeDay === date
+                        ? "bg-electric text-void"
+                        : "bg-void/50 text-white/50 border border-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span className="block text-sm font-bold">
+                      {d.toLocaleDateString("en-US", { weekday: "short" })}
+                    </span>
+                    <span className="block text-xs opacity-70">
+                      {d.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Time slot picker */}
-        <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
-          Select Time (1 hour slots)
-        </p>
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-8">
-          {timeSlots.map((slot) => (
-            <button
-              key={slot.start}
-              onClick={() => setSelectedSlot(slot.start)}
-              className={`px-3 py-3 rounded-xl text-sm font-mono font-bold transition-colors ${
-                selectedSlot === slot.start
-                  ? "bg-pulse text-void"
-                  : "bg-void/50 text-white/50 border border-white/10 hover:text-white hover:border-white/20"
-              }`}
-            >
-              {slot.label}
-            </button>
-          ))}
-        </div>
+            {/* Time slot picker */}
+            <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
+              Select Time (1 hour slots)
+            </p>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-8">
+              {daySlots.map((slot) => (
+                <button
+                  key={slot.id}
+                  disabled={slot.taken}
+                  onClick={() => setSelectedSlot(slot.start_time)}
+                  className={`px-3 py-3 rounded-xl text-sm font-mono font-bold transition-colors ${
+                    selectedSlot === slot.start_time
+                      ? "bg-pulse text-void"
+                      : slot.taken
+                        ? "bg-void/30 text-white/20 border border-white/5 line-through cursor-not-allowed"
+                        : "bg-void/50 text-white/50 border border-white/10 hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  <span className="block">{slot.start_time.slice(0, 5)}</span>
+                  <span className="block text-[10px] font-sans opacity-70">
+                    ${slot.price_per_person}/person
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Party size picker */}
         <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
@@ -206,20 +235,20 @@ function VenueDetail() {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-white/10">
           <div>
             <p className="text-white/40 text-sm">
-              {formatBookingDate(selectedDay)} at{" "}
-              {selectedSlot ? selectedSlot : "--:--"}
+              {activeDay ? formatBookingDate(activeDay) : "No slots"} at{" "}
+              {selectedSlot ? selectedSlot.slice(0, 5) : "--:--"}
             </p>
             <p className="text-2xl font-bold text-electric mt-1">
-              ${venue.price_per_hour * partySize}
+              ${unitPrice * partySize}
             </p>
             <p className="text-white/30 text-xs">
-              ${venue.price_per_hour} × {partySize}{" "}
+              ${unitPrice} × {partySize}{" "}
               {partySize === 1 ? "person" : "people"}
             </p>
           </div>
           {isLoggedIn ? (
             <button
-              disabled={!selectedSlot || bookingMutation.isPending}
+              disabled={!chosen || bookingMutation.isPending}
               onClick={() => bookingMutation.mutate()}
               className="w-full sm:w-auto px-8 py-4 bg-electric text-void font-bold rounded-full uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
             >
