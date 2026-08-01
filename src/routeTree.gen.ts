@@ -16,6 +16,7 @@ import { Route as AuthenticatedBookingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as VenueIdRouteImport } from './routes/venue.$id'
 import { Route as AuthenticatedOwnerSetupRouteImport } from './routes/_authenticated/owner_.setup'
+import { Route as AuthenticatedOwnerVenuesRouteImport } from './routes/_authenticated/owner_.venues'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +52,12 @@ const AuthenticatedOwnerSetupRoute = AuthenticatedOwnerSetupRouteImport.update({
   path: '/owner/setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOwnerVenuesRoute =
+  AuthenticatedOwnerVenuesRouteImport.update({
+    id: '/owner_/venues',
+    path: '/owner/venues',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/owner': typeof AuthenticatedOwnerRoute
   '/venue/$id': typeof VenueIdRoute
   '/owner/setup': typeof AuthenticatedOwnerSetupRoute
+  '/owner/venues': typeof AuthenticatedOwnerVenuesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
   '/owner': typeof AuthenticatedOwnerRoute
   '/venue/$id': typeof VenueIdRoute
   '/owner/setup': typeof AuthenticatedOwnerSetupRoute
+  '/owner/venues': typeof AuthenticatedOwnerVenuesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,13 +86,27 @@ export interface FileRoutesById {
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/venue/$id': typeof VenueIdRoute
   '/_authenticated/owner_/setup': typeof AuthenticatedOwnerSetupRoute
+  '/_authenticated/owner_/venues': typeof AuthenticatedOwnerVenuesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/bookings' | '/owner' | '/venue/$id' | '/owner/setup'
+    | '/'
+    | '/auth'
+    | '/bookings'
+    | '/owner'
+    | '/venue/$id'
+    | '/owner/setup'
+    | '/owner/venues'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/bookings' | '/owner' | '/venue/$id' | '/owner/setup'
+  to:
+    | '/'
+    | '/auth'
+    | '/bookings'
+    | '/owner'
+    | '/venue/$id'
+    | '/owner/setup'
+    | '/owner/venues'
   id:
     | '__root__'
     | '/'
@@ -93,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner'
     | '/venue/$id'
     | '/_authenticated/owner_/setup'
+    | '/_authenticated/owner_/venues'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOwnerSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/owner_/venues': {
+      id: '/_authenticated/owner_/venues'
+      path: '/owner/venues'
+      fullPath: '/owner/venues'
+      preLoaderRoute: typeof AuthenticatedOwnerVenuesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -160,12 +191,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBookingsRoute: typeof AuthenticatedBookingsRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
   AuthenticatedOwnerSetupRoute: typeof AuthenticatedOwnerSetupRoute
+  AuthenticatedOwnerVenuesRoute: typeof AuthenticatedOwnerVenuesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBookingsRoute: AuthenticatedBookingsRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
   AuthenticatedOwnerSetupRoute: AuthenticatedOwnerSetupRoute,
+  AuthenticatedOwnerVenuesRoute: AuthenticatedOwnerVenuesRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

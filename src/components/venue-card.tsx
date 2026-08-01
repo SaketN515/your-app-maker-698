@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { type Database } from "@/integrations/supabase/types";
-import { getVenueImage, type VenueType } from "@/lib/venue-images";
+import { resolveVenueImage, type VenueType } from "@/lib/venue-images";
 
-type Venue = Database["public"]["Tables"]["venues"]["Row"];
+type Venue = Database["public"]["Tables"]["venues"]["Row"] & {
+  image_url?: string | null;
+};
 
 const typeBadge: Record<VenueType, string> = {
   turf: "text-electric",
@@ -11,7 +13,7 @@ const typeBadge: Record<VenueType, string> = {
 };
 
 export function VenueCard({ venue }: { venue: Venue }) {
-  const img = getVenueImage(venue.image_path);
+  const img = resolveVenueImage(venue.image_path, venue.image_url);
 
   return (
     <Link
