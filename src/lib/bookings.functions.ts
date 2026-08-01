@@ -29,7 +29,18 @@ export const createBooking = createServerFn({ method: "POST" })
       .eq("id", data.venueId)
       .single();
     if (venueError) throw venueError;
-    const totalPrice = (venue?.price_per_hour ?? 0) * partySize;
+
+    // Owner-defined slot pricing wins; fall back to the venue's base rate.
+    const { data: slot } = await context.supabase
+      .from("venue_slots")
+      .select("price_per_person")
+      .eq("venue_id", data.venueId)
+      .eq("slot_date", data.bookingDate)
+      .eq("start_time", `${data.startTime}:00`)
+      .maybeSingle();
+
+    const unitPrice = slot?.price_per_person ?? venue?.price_per_hour ?? 0;
+    const totalPrice = unitPrice * partySize;
 
     let code = generateBookingCode();
     let attempts = 0;

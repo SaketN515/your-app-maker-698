@@ -1,8 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { becomeOwner } from "@/lib/owner.functions";
 import { toast } from "sonner";
+
+type AccountType = "player" | "owner";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,6 +25,17 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("player");
+  const queryClient = useQueryClient();
+  const becomeOwnerFn = useServerFn(becomeOwner);
+
+  async function afterSignIn() {
+    if (accountType === "owner") {
+      await becomeOwnerFn({});
+    }
+    await queryClient.invalidateQueries({ queryKey: ["my-roles"] });
+    navigate({ to: accountType === "owner" ? "/owner/venues" : "/" });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +46,10 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { account_type: accountType },
+          },
         });
         if (error) throw error;
         toast.success("Check your email to confirm your account.");
@@ -40,7 +60,7 @@ function AuthPage() {
         });
         if (error) throw error;
         toast.success("Signed in!");
-        navigate({ to: "/" });
+        await afterSignIn();
       }
     } catch (err) {
       toast.error(
@@ -62,7 +82,7 @@ function AuthPage() {
       }
       if (result.redirected) return;
       toast.success("Signed in!");
-      navigate({ to: "/" });
+      await afterSignIn();
     } catch {
       toast.error("Google sign-in failed.");
     }
@@ -103,6 +123,39 @@ function AuthPage() {
           >
             Sign Up
           </button>
+        </div>
+
+        {/* Account type */}
+        <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
+          I am a
+        </p>
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          {(
+            [
+              { key: "player", title: "Player", sub: "Book slots & get tickets" },
+              { key: "owner", title: "Venue Owner", sub: "List turf / gaming cafe" },
+            ] as { key: AccountType; title: string; sub: string }[]
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setAccountType(opt.key)}
+              className={`text-left p-4 rounded-2xl border transition-colors ${
+                accountType === opt.key
+                  ? "border-pulse bg-pulse/10"
+                  : "border-white/10 bg-surface hover:border-white/25"
+              }`}
+            >
+              <span
+                className={`block font-bold text-sm ${accountType === opt.key ? "text-pulse" : "text-white"}`}
+              >
+                {opt.title}
+              </span>
+              <span className="block text-[11px] text-white/40 mt-1">
+                {opt.sub}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Form */}

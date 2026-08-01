@@ -53,6 +53,31 @@ export const timeSlots: { start: string; end: string; label: string }[] = [
   { start: "22:00", end: "23:00", label: "22:00" },
 ];
 
+export function getNextDays(
+  count: number,
+): { date: string; label: string; sub: string }[] {
+  const days = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    days.push({
+      date: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString("en-US", { weekday: "short" }),
+      sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    });
+  }
+  return days;
+}
+
+export function resolveVenueImage(
+  imagePath: string,
+  imageUrl?: string | null,
+): string {
+  if (imageUrl) return imageUrl;
+  return getVenueImage(imagePath);
+}
+
 export function getNext7Days(): { date: string; label: string; sub: string }[] {
   const days = [];
   const now = new Date();

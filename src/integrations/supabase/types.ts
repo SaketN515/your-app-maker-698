@@ -106,6 +106,47 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_slots: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          price_per_person: number
+          slot_date: string
+          start_time: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          price_per_person?: number
+          slot_date: string
+          start_time: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          price_per_person?: number
+          slot_date?: string
+          start_time?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_slots_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venues: {
         Row: {
           address: string | null
