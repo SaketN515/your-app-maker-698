@@ -110,14 +110,9 @@ export function Nav() {
                   </DropdownMenuItem>
                 </>
               ) : (
-                <>
-                  <DropdownMenuItem asChild className={itemClass}>
-                    <Link to="/bookings">Tickets</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className={itemClass}>
-                    <Link to="/">Browse Venues</Link>
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem asChild className={itemClass}>
+                  <Link to="/bookings">Tickets</Link>
+                </DropdownMenuItem>
               )}
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem
