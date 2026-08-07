@@ -26,15 +26,47 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [accountType, setAccountType] = useState<AccountType>("player");
+  const [mismatch, setMismatch] = useState<AccountType | null>(null);
   const queryClient = useQueryClient();
   const becomeOwnerFn = useServerFn(becomeOwner);
 
-  async function afterSignIn() {
-    if (accountType === "owner") {
-      await becomeOwnerFn({});
-    }
+  async function goTo(actual: AccountType) {
     await queryClient.invalidateQueries({ queryKey: ["my-roles"] });
-    navigate({ to: accountType === "owner" ? "/owner/venues" : "/" });
+    navigate({ to: actual === "owner" ? "/owner/venues" : "/" });
+  }
+
+  /** Reads existing roles; returns null when the account has no roles yet. */
+  async function readExistingRole(): Promise<AccountType | null> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return null;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const roles = (data ?? []).map((r) => r.role as string);
+    if (roles.length === 0) return null;
+    return roles.includes("owner") || roles.includes("admin")
+      ? "owner"
+      : "player";
+  }
+
+  async function afterSignIn() {
+    const existing = await readExistingRole();
+
+    // Brand-new account: apply the chosen account type.
+    if (existing === null) {
+      if (accountType === "owner") await becomeOwnerFn({});
+      await goTo(accountType);
+      return;
+    }
+
+    // Existing account whose type differs from the selection: block until confirmed.
+    if (existing !== accountType) {
+      setMismatch(existing);
+      return;
+    }
+
+    await goTo(existing);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -90,6 +122,35 @@ function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-10">
+      {mismatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-void/90 backdrop-blur-sm px-6">
+          <div className="w-full max-w-sm bg-surface border border-white/10 rounded-3xl p-6 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-white/30 mb-3">
+              Account type
+            </p>
+            <h2 className="text-lg font-bold text-white leading-snug">
+              {mismatch === "player"
+                ? "This ID is logged in as a Player and not as a Venue Owner."
+                : "This ID is logged in as a Venue Owner and not as a Player."}
+            </h2>
+            <p className="text-sm text-white/40 mt-3">
+              Confirm to continue with this account.
+            </p>
+            <button
+              onClick={() => {
+                setMismatch(null);
+                setAccountType(mismatch);
+                void goTo(mismatch);
+              }}
+              className="mt-6 w-full py-3.5 bg-pulse text-void font-bold rounded-full uppercase tracking-widest text-sm hover:opacity-90 transition-opacity"
+            >
+              {mismatch === "player"
+                ? "Yes, I am a Player"
+                : "Yes, I am a Venue Owner"}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-10">
